@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useMeals } from '@/hooks/useMeals'
+import { useNutritionDefaults } from '@/hooks/useNutritionDefaults'
+import { useNutritionGoals } from '@/hooks/useNutritionGoals'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -17,6 +19,8 @@ interface AddMealFormProps {
 export function AddMealForm({ onSuccess }: AddMealFormProps) {
   const { user } = useAuth()
   const { addMeal } = useMeals()
+  const { goals } = useNutritionGoals()
+  const { placeholders } = useNutritionDefaults(goals)
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast')
@@ -134,7 +138,7 @@ export function AddMealForm({ onSuccess }: AddMealFormProps) {
               <Input
                 id="calories"
                 type="number"
-                placeholder="250"
+                placeholder={placeholders.calories.toString()}
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
                 required
@@ -161,7 +165,7 @@ export function AddMealForm({ onSuccess }: AddMealFormProps) {
                 id="protein"
                 type="number"
                 step="0.1"
-                placeholder="25"
+                placeholder={placeholders.protein.toString()}
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
               />
@@ -172,7 +176,7 @@ export function AddMealForm({ onSuccess }: AddMealFormProps) {
                 id="carbs"
                 type="number"
                 step="0.1"
-                placeholder="0"
+                placeholder={placeholders.carbs.toString()}
                 value={carbs}
                 onChange={(e) => setCarbs(e.target.value)}
               />
@@ -183,7 +187,7 @@ export function AddMealForm({ onSuccess }: AddMealFormProps) {
                 id="fat"
                 type="number"
                 step="0.1"
-                placeholder="5"
+                placeholder={placeholders.fat.toString()}
                 value={fat}
                 onChange={(e) => setFat(e.target.value)}
               />

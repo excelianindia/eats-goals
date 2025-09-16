@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useMeals } from "@/hooks/useMeals"
 import { useNutritionGoals } from "@/hooks/useNutritionGoals"
 import { useNutritionCalculations } from "@/hooks/useNutritionCalculations"
+import { useNutritionDefaults } from "@/hooks/useNutritionDefaults"
 import { AuthForm } from "@/components/auth/AuthForm"
 import { AddMealForm } from "@/components/meals/AddMealForm"
 import { GoalsForm } from "@/components/goals/GoalsForm"
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const today = new Date().toISOString().split('T')[0]
   const { meals, loading: mealsLoading, fetchMeals } = useMeals(today)
   const { goals, loading: goalsLoading } = useNutritionGoals()
+  const { defaults } = useNutritionDefaults(goals)
   const { dailyTotals, progressPercentages, formatMealForDisplay } = useNutritionCalculations(meals, goals)
 
   const loading = authLoading || mealsLoading || goalsLoading
@@ -203,7 +205,7 @@ export default function Dashboard() {
             <div>
               <h2 className="text-lg font-semibold">Today's Progress</h2>
               <p className="text-primary-foreground/80 text-sm">
-                {Math.round(dailyTotals.calories)} / {goals?.daily_calories || 2000} calories
+                {Math.round(dailyTotals.calories)} / {goals?.daily_calories || defaults.daily_calories} calories
               </p>
             </div>
             <Calendar className="w-6 h-6" />
@@ -238,21 +240,21 @@ export default function Dashboard() {
             label="Protein"
             value={Math.round(dailyTotals.protein)}
             unit="g"
-            max={goals?.daily_protein_g || 120}
+            max={goals?.daily_protein_g || defaults.daily_protein_g}
             color="protein"
           />
           <NutritionCard
             label="Carbs"
             value={Math.round(dailyTotals.carbs)}
             unit="g"
-            max={goals?.daily_carbs_g || 250}
+            max={goals?.daily_carbs_g || defaults.daily_carbs_g}
             color="carbs"
           />
           <NutritionCard
             label="Fat"
             value={Math.round(dailyTotals.fat)}
             unit="g"
-            max={goals?.daily_fat_g || 67}
+            max={goals?.daily_fat_g || defaults.daily_fat_g}
             color="fat"
           />
         </div>

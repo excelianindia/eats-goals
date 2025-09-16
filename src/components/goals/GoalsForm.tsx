@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { useNutritionGoals, NutritionGoals } from '@/hooks/useNutritionGoals'
+import { useNutritionDefaults } from '@/hooks/useNutritionDefaults'
 import { Calculator, Target, Save } from 'lucide-react'
 
 interface GoalsFormProps {
@@ -13,17 +14,10 @@ interface GoalsFormProps {
 
 export function GoalsForm({ onSuccess }: GoalsFormProps) {
   const { goals, updateGoals, loading } = useNutritionGoals()
+  const { defaults, getCalorieDefaults } = useNutritionDefaults(goals)
   const { toast } = useToast()
   const [formLoading, setFormLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    daily_calories: 2000,
-    daily_protein_g: 120,
-    daily_carbs_g: 250,
-    daily_fat_g: 67,
-    daily_fiber_g: 25,
-    daily_sugar_g: 50,
-    daily_sodium_mg: 2300
-  })
+  const [formData, setFormData] = useState(defaults)
 
   useEffect(() => {
     if (goals) {
@@ -72,8 +66,8 @@ export function GoalsForm({ onSuccess }: GoalsFormProps) {
   }
 
   const handleQuickSetup = (goalType: 'maintenance' | 'weight_loss' | 'muscle_gain') => {
-    // Use current calculated calories as base, or default to 2000
-    const baseCalories = formData.daily_calories || 2000
+    // Use current calculated calories as base, or fallback to defaults
+    const baseCalories = formData.daily_calories || defaults.daily_calories
     
     switch (goalType) {
       case 'weight_loss':

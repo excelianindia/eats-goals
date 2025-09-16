@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from './useAuth'
+import { DEFAULT_NUTRITION_GOALS } from '@/lib/nutrition-defaults'
 
 export interface NutritionGoals {
   id: string
@@ -65,13 +66,7 @@ export function useNutritionGoals() {
         .from('nutrition_goals')
         .insert([{
           user_id: user.id,
-          daily_calories: 2000,
-          daily_protein_g: 120,
-          daily_carbs_g: 250,
-          daily_fat_g: 67,
-          daily_fiber_g: 25,
-          daily_sugar_g: 50,
-          daily_sodium_mg: 2300
+          ...DEFAULT_NUTRITION_GOALS
         }])
         .select()
         .single()
