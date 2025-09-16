@@ -39,19 +39,32 @@ export function GoalsForm({ onSuccess }: GoalsFormProps) {
     }
   }, [goals])
 
+  // Auto-calculate calories when macros change
+  useEffect(() => {
+    const calculatedCalories = Math.round(
+      (formData.daily_protein_g * 4) + 
+      (formData.daily_carbs_g * 4) + 
+      (formData.daily_fat_g * 9)
+    )
+    
+    if (calculatedCalories !== formData.daily_calories) {
+      setFormData(prev => ({ ...prev, daily_calories: calculatedCalories }))
+    }
+  }, [formData.daily_protein_g, formData.daily_carbs_g, formData.daily_fat_g])
+
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     const numValue = parseFloat(value) || 0
     setFormData(prev => ({ ...prev, [field]: numValue }))
   }
 
-  const calculateMacros = (calories: number, proteinPercent: number = 25, carbPercent: number = 50, fatPercent: number = 25) => {
-    const protein = Math.round((calories * proteinPercent / 100) / 4)
-    const carbs = Math.round((calories * carbPercent / 100) / 4)
-    const fat = Math.round((calories * fatPercent / 100) / 9)
+  const calculateMacros = (targetCalories: number, proteinPercent: number = 25, carbPercent: number = 50, fatPercent: number = 25) => {
+    const protein = Math.round((targetCalories * proteinPercent / 100) / 4)
+    const carbs = Math.round((targetCalories * carbPercent / 100) / 4)
+    const fat = Math.round((targetCalories * fatPercent / 100) / 9)
     
+    // Set macros first, calories will be auto-calculated by useEffect
     setFormData(prev => ({
       ...prev,
-      daily_calories: calories,
       daily_protein_g: protein,
       daily_carbs_g: carbs,
       daily_fat_g: fat
@@ -59,6 +72,7 @@ export function GoalsForm({ onSuccess }: GoalsFormProps) {
   }
 
   const handleQuickSetup = (goalType: 'maintenance' | 'weight_loss' | 'muscle_gain') => {
+    // Use current calculated calories as base, or default to 2000
     const baseCalories = formData.daily_calories || 2000
     
     switch (goalType) {
@@ -157,19 +171,25 @@ export function GoalsForm({ onSuccess }: GoalsFormProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Calories */}
+            {/* Calories - Auto-calculated */}
             <div className="space-y-2">
-              <Label htmlFor="calories">Daily Calories</Label>
-              <Input
-                id="calories"
-                type="number"
-                value={formData.daily_calories}
-                onChange={(e) => handleInputChange('daily_calories', e.target.value)}
-                placeholder="2000"
-                min="1000"
-                max="5000"
-                required
-              />
+              <Label htmlFor="calories">Daily Calories (Auto-calculated)</Label>
+              <div className="relative">
+                <Input
+                  id="calories"
+                  type="number"
+                  value={formData.daily_calories}
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
+                  placeholder="Auto-calculated from macros"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                  P×4 + C×4 + F×9
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Calories are automatically calculated from your protein, carbs, and fat targets
+              </p>
             </div>
 
             {/* Macronutrients */}
