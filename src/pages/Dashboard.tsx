@@ -12,6 +12,7 @@ import { useNutritionGoals } from "@/hooks/useNutritionGoals"
 import { useNutritionCalculations } from "@/hooks/useNutritionCalculations"
 import { AuthForm } from "@/components/auth/AuthForm"
 import { AddMealForm } from "@/components/meals/AddMealForm"
+import { GoalsForm } from "@/components/goals/GoalsForm"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
@@ -70,63 +71,57 @@ export default function Dashboard() {
   if (activeTab === "goals") {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <Header title="Goals" subtitle="Track your nutrition targets" />
+        <Header title="Goals" subtitle="Set your nutrition targets" />
         
         <div className="p-4 space-y-6">
-          <div className="bg-card rounded-xl p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-4">
-              <Target className="w-5 h-5 text-primary" />
-              <h2 className="font-semibold">Daily Targets</h2>
-            </div>
-            
-            <div className="space-y-4">
-              {goals ? (
-                <>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Calories</span>
-                      <span>{Math.round(dailyTotals.calories)} / {goals.daily_calories}</span>
-                    </div>
-                    <Progress value={Math.min(progressPercentages?.calories || 0, 100)} className="h-2" />
+          {/* Current Progress */}
+          {goals && (
+            <div className="bg-card rounded-xl p-6 shadow-card">
+              <div className="flex items-center gap-3 mb-4">
+                <Target className="w-5 h-5 text-primary" />
+                <h2 className="font-semibold">Current Progress</h2>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Calories</span>
+                    <span>{Math.round(dailyTotals.calories)} / {goals.daily_calories}</span>
                   </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Protein</span>
-                      <span>{Math.round(dailyTotals.protein)} / {goals.daily_protein_g}g</span>
-                    </div>
-                    <Progress value={Math.min(progressPercentages?.protein || 0, 100)} className="h-2" />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Carbs</span>
-                      <span>{Math.round(dailyTotals.carbs)} / {goals.daily_carbs_g}g</span>
-                    </div>
-                    <Progress value={Math.min(progressPercentages?.carbs || 0, 100)} className="h-2" />
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Fat</span>
-                      <span>{Math.round(dailyTotals.fat)} / {goals.daily_fat_g}g</span>
-                    </div>
-                    <Progress value={Math.min(progressPercentages?.fat || 0, 100)} className="h-2" />
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  {loading ? 'Loading goals...' : 'No goals set'}
+                  <Progress value={Math.min(progressPercentages?.calories || 0, 100)} className="h-2" />
                 </div>
-              )}
-            </div>
-          </div>
-          
-          {!goals && !loading && (
-            <div className="text-center text-muted-foreground">
-              Setting up your nutrition goals...
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Protein</span>
+                    <span>{Math.round(dailyTotals.protein)} / {goals.daily_protein_g}g</span>
+                  </div>
+                  <Progress value={Math.min(progressPercentages?.protein || 0, 100)} className="h-2" />
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Carbs</span>
+                    <span>{Math.round(dailyTotals.carbs)} / {goals.daily_carbs_g}g</span>
+                  </div>
+                  <Progress value={Math.min(progressPercentages?.carbs || 0, 100)} className="h-2" />
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Fat</span>
+                    <span>{Math.round(dailyTotals.fat)} / {goals.daily_fat_g}g</span>
+                  </div>
+                  <Progress value={Math.min(progressPercentages?.fat || 0, 100)} className="h-2" />
+                </div>
+              </div>
             </div>
           )}
+          
+          {/* Goals Form */}
+          <GoalsForm onSuccess={() => {
+            // Goals will be automatically refetched by the hook
+          }} />
         </div>
         
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
