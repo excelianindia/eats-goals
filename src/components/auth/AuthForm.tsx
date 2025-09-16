@@ -1,18 +1,33 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { Mail, RefreshCw } from 'lucide-react'
 
 export function AuthForm() {
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
+  const [resendCount, setResendCount] = useState(0)
+  const [resendCooldown, setResendCooldown] = useState(0)
   const { toast } = useToast()
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (resendCooldown > 0) {
+      interval = setInterval(() => {
+        setResendCooldown(prev => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [resendCooldown])
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,6 +38,7 @@ export function AuthForm() {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: fullName,
           }
@@ -31,9 +47,43 @@ export function AuthForm() {
 
       if (error) throw error
 
+      setAwaitingConfirmation(true)
       toast({
         title: "Check your email",
         description: "We've sent you a confirmation link to complete your registration.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (resendCount >= 3) return
+    
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      })
+
+      if (error) throw error
+
+      setResendCount(prev => prev + 1)
+      setResendCooldown(60) // 60 second cooldown
+      
+      toast({
+        title: "Email sent",
+        description: "We've sent another confirmation email to your inbox.",
       })
     } catch (error: any) {
       toast({
@@ -71,6 +121,72 @@ export function AuthForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
+            <CardDescription>
+              We've sent a confirmation link to {email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Mail className="h-4 w-4" />
+              <AlertDescription>
+                Click the link in your email to confirm your account and start using NutriTrack.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground text-center">
+                Didn't receive the email? Check your spam folder.
+              </p>
+              
+              {resendCount < 3 && (
+                <Button
+                  onClick={handleResendConfirmation}
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading || resendCooldown > 0}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {resendCooldown > 0 
+                    ? `Resend in ${resendCooldown}s` 
+                    : `Resend Email ${resendCount > 0 ? `(${3 - resendCount} left)` : ''}`
+                  }
+                </Button>
+              )}
+              
+              {resendCount >= 3 && (
+                <Alert>
+                  <AlertDescription>
+                    Maximum resend attempts reached. Please contact support if you continue having issues.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+            
+            <Button
+              onClick={() => {
+                setAwaitingConfirmation(false)
+                setEmail('')
+                setPassword('')
+                setFullName('')
+                setResendCount(0)
+              }}
+              variant="ghost"
+              className="w-full"
+            >
+              Back to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
