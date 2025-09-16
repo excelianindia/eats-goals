@@ -6,61 +6,36 @@ import { MealCard } from "@/components/ui/meal-card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Calendar, ChevronRight, Target, TrendingUp } from "lucide-react"
-import { cn } from "@/lib/utils"
-
-// Mock data - will be replaced with Supabase data
-const mockMeals = [
-  {
-    id: "1",
-    name: "Greek Yogurt with Berries",
-    time: "8:30 AM",
-    calories: 180,
-    protein: 15,
-    carbs: 20,
-    fat: 5,
-  },
-  {
-    id: "2", 
-    name: "Grilled Chicken Salad",
-    time: "12:45 PM",
-    calories: 420,
-    protein: 35,
-    carbs: 15,
-    fat: 22,
-  },
-  {
-    id: "3",
-    name: "Salmon with Quinoa",
-    time: "7:15 PM", 
-    calories: 385,
-    protein: 28,
-    carbs: 35,
-    fat: 18,
-  }
-]
-
-const mockDailyGoals = {
-  calories: 2000,
-  protein: 120,
-  carbs: 250,
-  fat: 67
-}
+import { useAuth } from "@/hooks/useAuth"
+import { useMeals } from "@/hooks/useMeals"
+import { useNutritionGoals } from "@/hooks/useNutritionGoals"
+import { useNutritionCalculations } from "@/hooks/useNutritionCalculations"
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("home")
+  const { user, loading: authLoading } = useAuth()
+  const today = new Date().toISOString().split('T')[0]
+  const { meals, loading: mealsLoading } = useMeals(today)
+  const { goals, loading: goalsLoading } = useNutritionGoals()
+  const { dailyTotals, progressPercentages, formatMealForDisplay } = useNutritionCalculations(meals, goals)
 
-  // Calculate totals from mock meals
-  const dailyTotals = mockMeals.reduce(
-    (acc, meal) => ({
-      calories: acc.calories + meal.calories,
-      protein: acc.protein + meal.protein,
-      carbs: acc.carbs + meal.carbs,
-      fat: acc.fat + meal.fat,
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  )
+  const loading = authLoading || mealsLoading || goalsLoading
+  const calorieProgress = progressPercentages?.calories || 0
 
-  const calorieProgress = (dailyTotals.calories / mockDailyGoals.calories) * 100
+  // Format meals for display
+  const displayMeals = meals.map(formatMealForDisplay)
+
+  if (!user && !authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Welcome to NutriTrack</h1>
+          <p className="text-muted-foreground mb-6">Please sign in to track your nutrition</p>
+          <Button onClick={() => setActiveTab("profile")}>Sign In</Button>
+        </div>
+      </div>
+    )
+  }
 
   if (activeTab === "add") {
     return (
@@ -100,43 +75,53 @@ export default function Dashboard() {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Calories</span>
-                  <span>{mockDailyGoals.calories}</span>
+              {goals ? (
+                <>
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Calories</span>
+                      <span>{Math.round(dailyTotals.calories)} / {goals.daily_calories}</span>
+                    </div>
+                    <Progress value={Math.min(progressPercentages?.calories || 0, 100)} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Protein</span>
+                      <span>{Math.round(dailyTotals.protein)} / {goals.daily_protein_g}g</span>
+                    </div>
+                    <Progress value={Math.min(progressPercentages?.protein || 0, 100)} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Carbs</span>
+                      <span>{Math.round(dailyTotals.carbs)} / {goals.daily_carbs_g}g</span>
+                    </div>
+                    <Progress value={Math.min(progressPercentages?.carbs || 0, 100)} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Fat</span>
+                      <span>{Math.round(dailyTotals.fat)} / {goals.daily_fat_g}g</span>
+                    </div>
+                    <Progress value={Math.min(progressPercentages?.fat || 0, 100)} className="h-2" />
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  {loading ? 'Loading goals...' : 'No goals set'}
                 </div>
-                <Progress value={100} className="h-2" />
-              </div>
-              
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Protein</span>
-                  <span>{mockDailyGoals.protein}g</span>
-                </div>
-                <Progress value={100} className="h-2" />
-              </div>
-              
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Carbs</span>
-                  <span>{mockDailyGoals.carbs}g</span>
-                </div>
-                <Progress value={100} className="h-2" />
-              </div>
-              
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Fat</span>
-                  <span>{mockDailyGoals.fat}g</span>
-                </div>
-                <Progress value={100} className="h-2" />
-              </div>
+              )}
             </div>
           </div>
           
-          <div className="text-center text-muted-foreground">
-            Goal customization will be available once Supabase is connected
-          </div>
+          {!goals && !loading && (
+            <div className="text-center text-muted-foreground">
+              Setting up your nutrition goals...
+            </div>
+          )}
         </div>
         
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
@@ -209,7 +194,7 @@ export default function Dashboard() {
             <div>
               <h2 className="text-lg font-semibold">Today's Progress</h2>
               <p className="text-primary-foreground/80 text-sm">
-                {dailyTotals.calories} / {mockDailyGoals.calories} calories
+                {Math.round(dailyTotals.calories)} / {goals?.daily_calories || 2000} calories
               </p>
             </div>
             <Calendar className="w-6 h-6" />
@@ -242,23 +227,23 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-3">
           <NutritionCard
             label="Protein"
-            value={dailyTotals.protein}
+            value={Math.round(dailyTotals.protein)}
             unit="g"
-            max={mockDailyGoals.protein}
+            max={goals?.daily_protein_g || 120}
             color="protein"
           />
           <NutritionCard
             label="Carbs"
-            value={dailyTotals.carbs}
+            value={Math.round(dailyTotals.carbs)}
             unit="g"
-            max={mockDailyGoals.carbs}
+            max={goals?.daily_carbs_g || 250}
             color="carbs"
           />
           <NutritionCard
             label="Fat"
-            value={dailyTotals.fat}
+            value={Math.round(dailyTotals.fat)}
             unit="g"
-            max={mockDailyGoals.fat}
+            max={goals?.daily_fat_g || 67}
             color="fat"
           />
         </div>
@@ -274,9 +259,19 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-3">
-            {mockMeals.map((meal) => (
-              <MealCard key={meal.id} meal={meal} />
-            ))}
+            {loading ? (
+              <div className="text-center text-muted-foreground py-8">
+                Loading meals...
+              </div>
+            ) : displayMeals.length > 0 ? (
+              displayMeals.map((meal) => (
+                <MealCard key={meal.id} meal={meal} />
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                No meals logged today. Add your first meal!
+              </div>
+            )}
           </div>
         </div>
 
@@ -301,12 +296,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Supabase Connection Notice */}
-        <div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
-          <p className="text-warning-foreground text-sm">
-            <strong>Connect Supabase</strong> to enable data persistence, user authentication, and full functionality.
-          </p>
-        </div>
+        {/* Status Notice */}
+        {!goals && !loading && (
+          <div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
+            <p className="text-warning-foreground text-sm">
+              <strong>Setting up your nutrition goals...</strong> Your personalized targets are being created.
+            </p>
+          </div>
+        )}
       </div>
       
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
