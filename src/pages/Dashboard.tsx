@@ -5,17 +5,22 @@ import { NutritionCard } from "@/components/ui/nutrition-card"
 import { MealCard } from "@/components/ui/meal-card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Calendar, ChevronRight, Target, TrendingUp } from "lucide-react"
+import { Calendar, ChevronRight, Target, TrendingUp, LogOut } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useMeals } from "@/hooks/useMeals"
 import { useNutritionGoals } from "@/hooks/useNutritionGoals"
 import { useNutritionCalculations } from "@/hooks/useNutritionCalculations"
+import { AuthForm } from "@/components/auth/AuthForm"
+import { AddMealForm } from "@/components/meals/AddMealForm"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("home")
   const { user, loading: authLoading } = useAuth()
+  const { toast } = useToast()
   const today = new Date().toISOString().split('T')[0]
-  const { meals, loading: mealsLoading } = useMeals(today)
+  const { meals, loading: mealsLoading, fetchMeals } = useMeals(today)
   const { goals, loading: goalsLoading } = useNutritionGoals()
   const { dailyTotals, progressPercentages, formatMealForDisplay } = useNutritionCalculations(meals, goals)
 
@@ -25,16 +30,24 @@ export default function Dashboard() {
   // Format meals for display
   const displayMeals = meals.map(formatMealForDisplay)
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      toast({
+        title: "Signed out successfully",
+        description: "You've been signed out of your account.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
   if (!user && !authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Welcome to NutriTrack</h1>
-          <p className="text-muted-foreground mb-6">Please sign in to track your nutrition</p>
-          <Button onClick={() => setActiveTab("profile")}>Sign In</Button>
-        </div>
-      </div>
-    )
+    return <AuthForm />
   }
 
   if (activeTab === "add") {
@@ -43,18 +56,10 @@ export default function Dashboard() {
         <Header title="Add Meal" />
         
         <div className="p-4 space-y-6">
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">
-              Meal entry form will be here once Supabase is connected
-            </p>
-            <Button 
-              onClick={() => setActiveTab("home")}
-              className="mt-4"
-              variant="outline"
-            >
-              Back to Dashboard
-            </Button>
-          </div>
+          <AddMealForm onSuccess={() => {
+            setActiveTab("home")
+            fetchMeals()
+          }} />
         </div>
         
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
@@ -161,15 +166,24 @@ export default function Dashboard() {
           <div className="bg-card rounded-xl p-6 shadow-card">
             <div className="text-center">
               <div className="w-20 h-20 bg-gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary-foreground">U</span>
+                <span className="text-2xl font-bold text-primary-foreground">
+                  {user?.email?.charAt(0).toUpperCase()}
+                </span>
               </div>
-              <h2 className="font-semibold text-lg">Welcome!</h2>
-              <p className="text-muted-foreground">Connect Supabase for authentication</p>
+              <h2 className="font-semibold text-lg">Welcome back!</h2>
+              <p className="text-muted-foreground">{user?.email}</p>
             </div>
           </div>
           
-          <div className="text-center text-muted-foreground">
-            User profile and settings will be available once Supabase is connected
+          <div className="space-y-4">
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              className="w-full"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
         
